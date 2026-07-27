@@ -63,7 +63,7 @@ builder.Services.AddCors(options =>
     {
         policy.WithOrigins(
                 "http://localhost:5151",
-                "https://chamos-frontend.onrender.com"
+                "https://chamos.onrender.com"
               )
               .AllowAnyMethod()
               .AllowAnyHeader();
