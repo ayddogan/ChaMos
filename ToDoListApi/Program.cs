@@ -52,11 +52,15 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowBlazorClient", policy =>
     {
-        policy.WithOrigins("http://localhost:5151")
+        policy.WithOrigins(
+                "http://localhost:5151",
+                "https://chamos-frontend.onrender.com"
+              )
               .AllowAnyMethod()
               .AllowAnyHeader();
     });
 });
+
 builder.Services.AddControllers();
 builder.Services.AddOpenApiDocument(config =>
 {

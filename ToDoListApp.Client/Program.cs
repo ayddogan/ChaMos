@@ -7,7 +7,7 @@ var builder = WebAssemblyHostBuilder.CreateDefault(args);
 builder.RootComponents.Add<App>("#app");
 builder.RootComponents.Add<HeadOutlet>("head::after");
 
-builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri("http://localhost:5224/") });
+builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri("https://chamos.onrender.com/") });
 builder.Services.AddScoped<ApiClient>();
 
 await builder.Build().RunAsync();
