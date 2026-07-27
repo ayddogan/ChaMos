@@ -77,7 +77,7 @@
             {
                 await JS.InvokeVoidAsync("localStorageHelper.setItem", "accessToken", result.AccessToken);
                 await JS.InvokeVoidAsync("localStorageHelper.setItem", "refreshToken", result.RefreshToken);
-                Navigation.NavigateTo("/todos", forceLoad: true);
+                Navigation.NavigateTo("/", forceLoad: true);
             }
         }
         else
