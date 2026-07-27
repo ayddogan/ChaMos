@@ -1,0 +1,14 @@
+# Derleme çıktıları
+bin/
+obj/
+
+# Visual Studio / VS Code ayarları
+.vs/
+*.user
+
+# Loglar
+logs/
+
+# İşletim sistemi dosyaları
+.DS_Store
+Thumbs.db

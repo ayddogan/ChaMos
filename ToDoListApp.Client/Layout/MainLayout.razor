@@ -1,0 +1,46 @@
+﻿@inherits LayoutComponentBase
+@inject Microsoft.JSInterop.IJSRuntime JS
+@inject NavigationManager Navigation
+
+<div class="page">
+    @if (isLoggedIn)
+    {
+        <div class="sidebar">
+            <NavMenu />
+        </div>
+    }
+
+    <main>
+        @if (isLoggedIn)
+        {
+            <div class="top-row px-4" style="display: flex; justify-content: flex-end; align-items: center;">
+                <button class="btn btn-link" @onclick="HandleLogout">Çıkış Yap</button>
+            </div>
+        }
+
+        <article class="content px-4">
+            @Body
+        </article>
+    </main>
+</div>
+
+@code {
+    private bool isLoggedIn = false;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            var token = await JS.InvokeAsync<string?>("localStorageHelper.getItem", "accessToken");
+            isLoggedIn = !string.IsNullOrEmpty(token);
+            StateHasChanged();
+        }
+    }
+
+    private async Task HandleLogout()
+    {
+        await JS.InvokeVoidAsync("localStorageHelper.removeItem", "accessToken");
+        await JS.InvokeVoidAsync("localStorageHelper.removeItem", "refreshToken");
+        Navigation.NavigateTo("/", forceLoad: true);
+    }
+}

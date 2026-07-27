@@ -1,0 +1,76 @@
+@page "/register"
+@inject HttpClient Http
+@inject NavigationManager Navigation
+@using Microsoft.AspNetCore.Components.Web
+
+<PageTitle>ChaMos - Kayıt Ol</PageTitle>
+
+<div class="auth-page-background">
+    <div class="auth-card" style="max-width: 400px; width: 100%; text-align: center;">
+        <h1 style="color: var(--color-navy); margin-bottom: 8px;">ChaMos</h1>
+        <p style="color: #888; margin-bottom: 30px;">Yeni bir hesap oluştur</p>
+
+        <div style="margin-bottom: 18px; text-align: left;">
+            <label style="font-size: 15px; color: #555; font-weight: 600;">E-posta</label>
+            <input @bind="email"
+                   style="width: 100%; font-size: 16px; padding: 10px 12px; border: 1px solid #ddd; border-radius: 8px; margin-top: 4px;" />
+        </div>
+
+        <div style="margin-bottom: 24px; text-align: left;">
+            <label style="font-size: 15px; color: #555; font-weight: 600;">Parola</label>
+            <div style="position: relative;">
+                <input type="@(showPassword ? "text" : "password")" @bind="password"
+                    style="width: 100%; font-size: 16px; padding: 10px 40px 10px 12px; border: 1px solid #ddd; border-radius: 8px; margin-top: 4px; box-sizing: border-box;"
+                    @onkeyup="HandleKeyUp" />
+                <span style="position: absolute; right: 12px; top: 50%; transform: translateY(calc(-50% + 2px)); cursor: pointer; font-size: 16px;"
+                    @onclick="() => showPassword = !showPassword">
+                    @(showPassword ? "🙈" : "👁️")
+                </span>
+            </div>
+        </div>
+
+        <button class="btn btn-primary" style="width: 100%; font-size: 16px; padding: 12px; border-radius: 8px;" @onclick="HandleRegister">
+            Kayıt Ol
+        </button>
+
+        <p style="color: #d9534f; margin-top: 12px;">@message</p>
+
+        <p style="margin-top: 20px; color: #888;">
+            Zaten hesabın var mı? <a href="login" style="color: var(--color-purple); font-weight: 600;">Giriş Yap</a>
+        </p>
+    </div>
+</div>
+
+@code {
+    private string email = string.Empty;
+    private string password = string.Empty;
+    private bool showPassword = false;
+    private string message = string.Empty;
+
+    private async Task HandleKeyUp(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            await HandleRegister();
+        }
+    }
+
+    private async Task HandleRegister()
+    {
+        message = "Kayıt olunuyor...";
+
+        var registerRequest = new { email, password };
+        var response = await Http.PostAsJsonAsync("api/auth/register", registerRequest);
+
+        if (response.IsSuccessStatusCode)
+        {
+            message = "Kayıt başarılı! Giriş sayfasına yönlendiriliyorsunuz...";
+            await Task.Delay(1500);
+            Navigation.NavigateTo("/login");
+        }
+        else
+        {
+            message = $"Kayıt başarısız: {response.StatusCode}";
+        }
+    }
+}

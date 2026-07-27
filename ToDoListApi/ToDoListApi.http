@@ -1,0 +1,60 @@
+@baseUrl = http://localhost:5224/api/todos
+
+### list all tasks
+GET {{baseUrl}}
+
+### add new task
+POST {{baseUrl}}
+Content-Type: application/json
+
+{
+  "title": "İlk görevim"
+}
+
+### get a single task (replace id with actual id)
+GET {{baseUrl}}/6
+
+### madde 3 testi - id uyuşmazlığı
+PUT {{baseUrl}}/6
+Content-Type: application/json
+
+{
+  "id": 999,
+  "title": "Bunu değiştirmemeli"
+}
+
+### partial update - sadece isCompleted gönder
+PUT {{baseUrl}}/6
+Content-Type: application/json
+
+{
+  "isCompleted": true
+}
+
+### update a task (mark as completed)
+PUT {{baseUrl}}/6
+Content-Type: application/json
+
+{
+  "title": "İlk görevim",
+  "isCompleted": true
+}
+
+### madde 4 testi - boş başlık
+PUT {{baseUrl}}/6
+Content-Type: application/json
+
+{
+  "title": ""
+}
+
+### madde 2 testi - olmayan id
+PUT {{baseUrl}}/999
+Content-Type: application/json
+
+{
+  "isCompleted": true
+}
+
+### delete a task
+DELETE {{baseUrl}}/6

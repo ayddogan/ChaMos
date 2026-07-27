@@ -1,0 +1,572 @@
+@page "/todos"
+@inject HttpClient Http
+@inject ToDoListApp.Client.Services.ApiClient Api
+@inject Microsoft.JSInterop.IJSRuntime JS
+@using System.Net.Http.Headers
+@using Microsoft.AspNetCore.Components.Web
+<PageTitle>ChaMos - Planlarım</PageTitle>
+
+<h1>Planlarım</h1>
+
+@if (activeReminders.Any())
+{
+    <div style="background: #fff3cd; border: 1px solid #ffc107; border-radius: 10px; padding: 16px; margin-bottom: 20px;">
+        <strong style="color: #856404;">🔔 Hatırlatmalar</strong>
+        <ul style="margin: 8px 0 0 0; padding-left: 20px;">
+            @foreach (var reminder in activeReminders)
+            {
+                <li style="color: #856404;">
+                    <strong>@reminder.Title</strong>
+                    @if (reminder.StartDate.HasValue)
+                    {
+                        <span> — 🚀 Başlangıç: @reminder.StartDate.Value.ToLocalTime().ToString("dd MMMM, HH:mm")</span>
+                    }
+                    @if (reminder.DueDate.HasValue)
+                    {
+                        <span> — 🏁 Bitiş: @reminder.DueDate.Value.ToLocalTime().ToString("dd MMMM, HH:mm")</span>
+                    }
+                </li>
+            }
+        </ul>
+    </div>
+}
+
+@if (!isAuthenticated)
+{
+    <p>Giriş yapılıyor mu kontrol ediliyor...</p>
+}
+else if (todos == null)
+{
+    <p>Yükleniyor...</p>
+}
+else
+{
+   <div style="background: white; border-radius: 12px; padding: 24px; margin-bottom: 30px; box-shadow: 0 4px 16px rgba(26,26,62,0.08);">
+        <div style="margin-bottom: 14px;">
+            <input @bind="newTodoTitle" placeholder="Yeni plan başlığı..."
+                style="width: 100%; font-size: 17px; padding: 10px 12px; border: 1px solid #ddd; border-radius: 8px;"
+                @onkeyup="HandleKeyUp" />
+        </div>
+
+        <div style="display: flex; gap: 12px; margin-bottom: 14px; flex-wrap: wrap;">
+            <textarea @bind="newTodoDescription" placeholder="Açıklama ekle (isteğe bağlı)..."
+                    style="flex: 2; min-width: 220px; font-size: 15px; padding: 10px 12px; border: 1px solid #ddd; border-radius: 8px; resize: vertical; min-height: 44px;"></textarea>
+            <input @bind="newTodoLocation" placeholder="📍 Konum ekle (isteğe bağlı)..."
+                style="flex: 1; min-width: 180px; font-size: 15px; padding: 10px 12px; border: 1px solid #ddd; border-radius: 8px;" />
+        </div>
+
+        <div style="display: flex; flex-wrap: wrap; gap: 14px; margin-bottom: 14px;">
+            <div style="flex: 1; min-width: 260px; background: var(--color-lilac-light); border-radius: 10px; padding: 12px 16px;">
+                <label style="display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--color-purple); margin-bottom: 8px; font-weight: 700; letter-spacing: 0.5px;">
+                    🚀 BAŞLANGIÇ
+                </label>
+                <div style="display: flex; gap: 6px;">
+                    <select @bind="startDay" style="padding: 8px 4px; border: none; border-radius: 6px; background: white; font-size: 14px;">
+                        <option value="">Gün</option>
+                        @for (int d = 1; d <= 31; d++)
+                        {
+                            <option value="@d">@d</option>
+                        }
+                    </select>
+                    <select @bind="startMonth" style="padding: 8px 4px; border: none; border-radius: 6px; background: white; font-size: 14px;">
+                        <option value="">Ay</option>
+                        @for (int m = 1; m <= 12; m++)
+                        {
+                            <option value="@m">@m</option>
+                        }
+                    </select>
+                    <select @bind="startYear" style="padding: 8px 4px; border: none; border-radius: 6px; background: white; font-size: 14px;">
+                        <option value="">Yıl</option>
+                        @for (int y = DateTime.Now.Year; y <= DateTime.Now.Year + 5; y++)
+                        {
+                            <option value="@y">@y</option>
+                        }
+                    </select>
+                    <input type="time" @bind="newTodoStartTimeOnly"
+                        style="width: 85px; padding: 8px 6px; border: none; border-radius: 6px; background: white; font-size: 14px;" />
+                </div>
+            </div>
+
+            <div style="flex: 1; min-width: 260px; background: var(--color-lilac-light); border-radius: 10px; padding: 12px 16px;">
+                <label style="display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--color-purple); margin-bottom: 8px; font-weight: 700; letter-spacing: 0.5px;">
+                    🏁 BİTİŞ
+                </label>
+                <div style="display: flex; gap: 6px;">
+                    <select @bind="dueDay" style="padding: 8px 4px; border: none; border-radius: 6px; background: white; font-size: 14px;">
+                        <option value="">Gün</option>
+                        @for (int d = 1; d <= 31; d++)
+                        {
+                            <option value="@d">@d</option>
+                        }
+                    </select>
+                    <select @bind="dueMonth" style="padding: 8px 4px; border: none; border-radius: 6px; background: white; font-size: 14px;">
+                        <option value="">Ay</option>
+                        @for (int m = 1; m <= 12; m++)
+                        {
+                            <option value="@m">@m</option>
+                        }
+                    </select>
+                    <select @bind="dueYear" style="padding: 8px 4px; border: none; border-radius: 6px; background: white; font-size: 14px;">
+                        <option value="">Yıl</option>
+                        @for (int y = DateTime.Now.Year; y <= DateTime.Now.Year + 5; y++)
+                        {
+                            <option value="@y">@y</option>
+                        }
+                    </select>
+                    <input type="time" @bind="newTodoDueTimeOnly"
+                        style="width: 85px; padding: 8px 6px; border: none; border-radius: 6px; background: white; font-size: 14px;" />
+                </div>
+            </div>
+
+            <div style="display: flex; align-items: center;">
+                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 10px 18px; border-radius: 10px; background: @(newTodoIsUrgent ? "#d9534f" : "#f5f5f5"); color: @(newTodoIsUrgent ? "white" : "#888"); font-weight: 700; transition: all 0.2s; height: 100%; box-sizing: border-box;">
+                    <input type="checkbox" @bind="newTodoIsUrgent" style="cursor: pointer;" /> 🔥 Acil
+                </label>
+            </div>
+            <div style="flex: 1; min-width: 240px; background: var(--color-lilac-light); border-radius: 10px; padding: 12px 16px;">
+                <label style="display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--color-purple); margin-bottom: 8px; font-weight: 700; letter-spacing: 0.5px;">
+                    🔔 HATIRLATMA
+                </label>
+                <div style="display: flex; gap: 6px;">
+                    <select @bind="newTodoReminderMinutes" style="flex: 1; padding: 8px 10px; border: none; border-radius: 6px; background: white; font-size: 14px;">
+                        <option value="">Hatırlatma yok</option>
+                        <option value="15">15 dk önce</option>
+                        <option value="30">30 dk önce</option>
+                        <option value="60">1 saat önce</option>
+                        <option value="1440">1 gün önce</option>
+                        <option value="2880">2 gün önce</option>
+                    </select>
+                    <select @bind="newTodoReminderBasedOn" style="width: 100px; padding: 8px 10px; border: none; border-radius: 6px; background: white; font-size: 14px;">
+                        <option value="Due">Bitişten</option>
+                        <option value="Start">Başlangıçtan</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <button class="btn btn-primary" style="padding: 10px 28px; border-radius: 8px;" @onclick="AddTodo">Plan Ekle</button>
+    </div>
+    <p>@statusMessage</p>
+
+    <h2 style="margin-top: 30px; color: var(--color-navy);">Öncelikli</h2>
+<ul style="list-style: none; padding-left: 0;">
+@foreach (var todo in priorityTodos)
+{
+    <li class="plan-card" style="max-width: 650px; margin-bottom: 10px; display: flex; align-items: center; gap: 10px; background: #fff8f0; padding: 10px; border-radius: 8px; flex-wrap: wrap;">
+        <input type="checkbox"
+            checked="@todo.IsCompleted"
+            @onchange="@(async (e) => await ToggleComplete(todo, (bool)e.Value!))" />
+        @if (todo.IsUrgent)
+        {
+            <span style="color: #d9534f; font-weight: bold;">🔥 ACİL</span>
+        }
+        <strong style="@(todo.IsCompleted ? "text-decoration: line-through;" : "") cursor: pointer;"
+                @onclick="@(() => ToggleExpand(todo))">
+            @todo.Title
+            @if (!string.IsNullOrEmpty(todo.Description) || !string.IsNullOrEmpty(todo.Location))
+            {
+                <span style="font-size: 12px; color: #999;"> (detay için tıkla)</span>
+            }
+        </strong>
+        <span style="cursor: pointer; font-size: 15px; opacity: 0.5;" title="Düzenle" @onclick="@(() => StartEdit(todo))">✏️</span>
+
+        @if (todo.StartDate.HasValue)
+        {
+            <span style="margin-left: 10px; color: #666; font-size: 14px;">
+                Başlangıç: @todo.StartDate.Value.ToLocalTime().ToString("dd.MM.yyyy HH:mm")
+            </span>
+        }
+
+        @if (todo.DueDate.HasValue)
+        {
+            <span style="margin-left: 10px; color: #666; font-size: 14px;">
+                Bitiş: @todo.DueDate.Value.ToLocalTime().ToString("dd.MM.yyyy HH:mm")
+            </span>
+        }
+
+        <button class="btn btn-sm btn-danger" style="margin-left: auto;" @onclick="@(() => DeleteTodo(todo))">Sil</button>
+        @if (todo.IsEditing)
+        {
+            <div style="width: 100%; margin-top: 10px; padding: 12px; background: #f0f4ff; border-radius: 8px;">
+                <input @bind="todo.EditTitle" placeholder="Başlık"
+                    style="width: 100%; padding: 8px 10px; border: 1px solid #ccc; border-radius: 6px; margin-bottom: 8px; font-size: 15px;" />
+                <textarea @bind="todo.EditDescription" placeholder="Açıklama"
+                        style="width: 100%; padding: 8px 10px; border: 1px solid #ccc; border-radius: 6px; margin-bottom: 8px; font-size: 14px; min-height: 50px;"></textarea>
+                <button class="btn btn-sm btn-primary" @onclick="@(() => SaveEdit(todo))">Kaydet</button>
+                <button class="btn btn-sm btn-outline-secondary" @onclick="@(() => CancelEdit(todo))">Vazgeç</button>
+            </div>
+        }
+        @if (todo.IsExpanded && (!string.IsNullOrEmpty(todo.Description) || !string.IsNullOrEmpty(todo.Location)))
+        {
+            <div style="width: 100%; margin-top: 8px; padding: 10px; background: rgba(0,0,0,0.03); border-radius: 6px; font-size: 14px; color: #555;">
+                @if (!string.IsNullOrEmpty(todo.Description))
+                {
+                    <div>@todo.Description</div>
+                }
+                @if (!string.IsNullOrEmpty(todo.Location))
+                {
+                    <div style="margin-top: @(!string.IsNullOrEmpty(todo.Description) ? "6px" : "0"); font-weight: 600;">
+                        📍 @todo.Location
+                    </div>
+                }
+            </div>
+        }
+    </li>
+}
+    </ul>
+
+    <h2 style="margin-top: 30px; color: var(--color-navy);">Zamanlanmış</h2>
+    <ul style="list-style: none; padding-left: 0;">
+    @foreach (var todo in scheduledTodos)
+    {
+       <li class="plan-card" style="max-width: 650px; margin-bottom: 12px; padding: 14px 16px; border-radius: 10px; background: white; box-shadow: 0 2px 8px rgba(26,26,62,0.06); border-left: 5px solid @(GetTimeRemaining(GetRelevantDate(todo)).Color);">
+            <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                <input type="checkbox"
+                    checked="@todo.IsCompleted"
+                    @onchange="@(async (e) => await ToggleComplete(todo, (bool)e.Value!))" />
+
+                <strong style="@(todo.IsCompleted ? "text-decoration: line-through;" : "") cursor: pointer; font-size: 16px;"
+                        @onclick="@(() => ToggleExpand(todo))">
+                    @todo.Title
+                    @if (!string.IsNullOrEmpty(todo.Description) || !string.IsNullOrEmpty(todo.Location))
+                    {
+                        <span style="font-size: 12px; color: #999;"> (detay için tıkla)</span>
+                    }
+                </strong>
+                <span style="cursor: pointer; font-size: 15px; opacity: 0.5;" title="Düzenle" @onclick="@(() => StartEdit(todo))">✏️</span>
+
+                @if (!todo.IsCompleted)
+                {
+                    <span style="margin-left: auto; font-weight: 700; font-size: 13px; padding: 4px 10px; border-radius: 20px; background: @(GetTimeRemaining(GetRelevantDate(todo)).Color); color: white;">
+                        @GetTimeRemaining(GetRelevantDate(todo)).Text
+                    </span>
+                }
+                <button class="btn btn-sm btn-danger" style="@(todo.IsCompleted ? "margin-left: auto;" : "")" @onclick="@(() => DeleteTodo(todo))">Sil</button>
+            </div>
+
+            <div style="margin-top: 6px; color: #888; font-size: 13px; padding-left: 26px;">
+                @if (todo.StartDate.HasValue)
+                {
+                    <span>🚀 @todo.StartDate.Value.ToLocalTime().ToString("dd MMMM, HH:mm")</span>
+                }
+                @if (todo.StartDate.HasValue && todo.DueDate.HasValue)
+                {
+                    <span> → </span>
+                }
+                @if (todo.DueDate.HasValue)
+                {
+                    <span>🏁 @todo.DueDate.Value.ToLocalTime().ToString("dd MMMM, HH:mm")</span>
+                }
+            </div>
+            @if (todo.IsEditing)
+            {
+                <div style="width: 100%; margin-top: 10px; padding: 12px; background: #f0f4ff; border-radius: 8px;">
+                    <input @bind="todo.EditTitle" placeholder="Başlık"
+                        style="width: 100%; padding: 8px 10px; border: 1px solid #ccc; border-radius: 6px; margin-bottom: 8px; font-size: 15px;" />
+                    <textarea @bind="todo.EditDescription" placeholder="Açıklama"
+                            style="width: 100%; padding: 8px 10px; border: 1px solid #ccc; border-radius: 6px; margin-bottom: 8px; font-size: 14px; min-height: 50px;"></textarea>
+                    <button class="btn btn-sm btn-primary" @onclick="@(() => SaveEdit(todo))">Kaydet</button>
+                    <button class="btn btn-sm btn-outline-secondary" @onclick="@(() => CancelEdit(todo))">Vazgeç</button>
+                </div>
+            }
+            @if (todo.IsExpanded && (!string.IsNullOrEmpty(todo.Description) || !string.IsNullOrEmpty(todo.Location)))
+            {
+                <div style="width: 100%; margin-top: 8px; padding: 10px; background: rgba(0,0,0,0.03); border-radius: 6px; font-size: 14px; color: #555;">
+                    @if (!string.IsNullOrEmpty(todo.Description))
+                    {
+                        <div>@todo.Description</div>
+                    }
+                    @if (!string.IsNullOrEmpty(todo.Location))
+                    {
+                        <div style="margin-top: @(!string.IsNullOrEmpty(todo.Description) ? "6px" : "0"); font-weight: 600;">
+                            📍 @todo.Location
+                        </div>
+                    }
+                </div>
+            }
+        </li>
+    }
+    </ul>
+}
+
+@code {
+    private bool isAuthenticated = false;
+    private List<TodoItemDto>? todos;
+    private List<TodoItemDto> activeReminders = new();
+    private int? newTodoReminderMinutes;
+    
+    private string newTodoReminderBasedOn = "Due";
+    private List<TodoItemDto> priorityTodos =>
+    todos?.Where(t => t.IsUrgent || (t.StartDate == null && t.DueDate == null)).ToList() ?? new();
+
+    private List<TodoItemDto> scheduledTodos =>
+        todos?.Where(t => !t.IsUrgent && (t.StartDate != null || t.DueDate != null))
+            .OrderBy(t => t.DueDate ?? t.StartDate)
+            .ToList() ?? new();
+    private string newTodoTitle = string.Empty;
+    private int? startDay, startMonth, startYear;
+    private int? dueDay, dueMonth, dueYear;
+    private TimeOnly? newTodoStartTimeOnly;
+    private TimeOnly? newTodoDueTimeOnly; 
+    private bool newTodoIsUrgent = false;
+    private string newTodoDescription = string.Empty;
+    private string newTodoLocation = string.Empty;
+    private string statusMessage = string.Empty;
+
+   private class TodoItemDto
+    {
+        public int Id { get; set; }
+        public string Title { get; set; } = string.Empty;
+        public bool IsCompleted { get; set; }
+        public DateTime? StartDate { get; set; }
+        public DateTime? DueDate { get; set; }
+        public bool IsUrgent { get; set; }
+        public string? Description { get; set; }
+        public string? Location { get; set; }
+        public int? ReminderMinutesBefore { get; set; }
+        public bool IsExpanded { get; set; } = false;
+        public bool IsEditing { get; set; } = false;
+        public string EditTitle { get; set; } = string.Empty;
+        public string EditDescription { get; set; } = string.Empty;
+
+        
+    }
+
+    private class PagedResult
+    {
+        public List<TodoItemDto> Items { get; set; } = new();
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        var token = await JS.InvokeAsync<string?>("localStorageHelper.getItem", "accessToken");
+
+        if (string.IsNullOrEmpty(token))
+        {
+            statusMessage = "Giriş yapmamışsınız, lütfen önce giriş yapın.";
+            return;
+        }
+
+        Http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        isAuthenticated = true;
+
+        await LoadTodos();
+        await LoadReminders();
+    }
+
+    private async Task LoadTodos()
+    {
+        var response = await Api.GetAsync("api/todos");
+
+        if (response.IsSuccessStatusCode)
+        {
+            var result = await response.Content.ReadFromJsonAsync<PagedResult>();
+            todos = result?.Items ?? new List<TodoItemDto>();
+        }
+        else
+        {
+            statusMessage = $"Planlar yüklenemedi: {response.StatusCode}";
+            todos = new List<TodoItemDto>();
+        }
+    }
+    private async Task LoadReminders()
+    {
+        var response = await Api.GetAsync("api/todos/reminders");
+
+        if (response.IsSuccessStatusCode)
+        {
+            activeReminders = await response.Content.ReadFromJsonAsync<List<TodoItemDto>>() ?? new();
+        }
+    }
+
+    private async Task HandleKeyUp(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            await AddTodo();
+        }
+    }
+
+    private async Task AddTodo()
+    {
+        if (string.IsNullOrWhiteSpace(newTodoTitle))
+        {
+            statusMessage = "Başlık boş olamaz.";
+            return;
+        }
+
+       DateTime? combinedStartDate = null;
+        if (startDay.HasValue && startMonth.HasValue && startYear.HasValue && newTodoStartTimeOnly.HasValue)
+        {
+            var startDateOnly = new DateOnly(startYear.Value, startMonth.Value, startDay.Value);
+            var localStart = DateTime.SpecifyKind(startDateOnly.ToDateTime(newTodoStartTimeOnly.Value), DateTimeKind.Local);
+            combinedStartDate = localStart.ToUniversalTime();
+        }
+
+        DateTime? combinedDueDate = null;
+        if (dueDay.HasValue && dueMonth.HasValue && dueYear.HasValue && newTodoDueTimeOnly.HasValue)
+        {
+            var dueDateOnly = new DateOnly(dueYear.Value, dueMonth.Value, dueDay.Value);
+            var localDue = DateTime.SpecifyKind(dueDateOnly.ToDateTime(newTodoDueTimeOnly.Value), DateTimeKind.Local);
+            combinedDueDate = localDue.ToUniversalTime();
+        }
+
+        var request = new
+        {
+            title = newTodoTitle,
+            startDate = combinedStartDate,
+            dueDate = combinedDueDate,
+            isUrgent = newTodoIsUrgent,
+            description = string.IsNullOrWhiteSpace(newTodoDescription) ? null : newTodoDescription,
+            location = string.IsNullOrWhiteSpace(newTodoLocation) ? null : newTodoLocation,
+            reminderMinutesBefore = newTodoReminderMinutes,
+            reminderBasedOn = newTodoReminderBasedOn
+        };
+
+        var response = await Api.PostAsJsonAsync("api/todos", request);
+
+        if (response.IsSuccessStatusCode)
+        {
+            newTodoTitle = string.Empty;
+            newTodoDescription = string.Empty;
+            newTodoLocation = string.Empty;
+            startDay = null; startMonth = null; startYear = null;
+            newTodoStartTimeOnly = null;
+            dueDay = null; dueMonth = null; dueYear = null;
+            newTodoDueTimeOnly = null;
+            newTodoIsUrgent = false;
+            statusMessage = string.Empty;
+            newTodoReminderMinutes = null;
+            newTodoReminderBasedOn = "Due";
+            await LoadTodos();
+            await LoadReminders();
+        }
+        else
+        {
+            statusMessage = $"Plan eklenemedi: {response.StatusCode}";
+        }
+    }
+
+    private async Task ToggleComplete(TodoItemDto todo, bool newValue)
+    {
+        var updateRequest = new { isCompleted = newValue };
+        var response = await Api.PutAsJsonAsync($"api/todos/{todo.Id}", updateRequest);
+
+        if (response.IsSuccessStatusCode)
+        {
+            todo.IsCompleted = newValue;
+            statusMessage = string.Empty;
+        }
+        else
+        {
+            statusMessage = $"Güncellenemedi: {response.StatusCode}";
+        }
+
+        StateHasChanged();
+    }
+
+    private async Task DeleteTodo(TodoItemDto todo)
+    {
+        var confirmed = await JS.InvokeAsync<bool>("confirm", $"\"{todo.Title}\" planını silmek istediğine emin misin?");
+
+        if (!confirmed)
+        {
+            return;
+        }
+
+        var response = await Api.DeleteAsync($"api/todos/{todo.Id}");
+
+        if (response.IsSuccessStatusCode)
+        {
+            todos?.Remove(todo);
+            statusMessage = string.Empty;
+        }
+        else
+        {
+            statusMessage = $"Silinemedi: {response.StatusCode}";
+        }
+    }
+
+    private void ToggleExpand(TodoItemDto todo)
+    {
+        todo.IsExpanded = !todo.IsExpanded;
+    }
+    private void StartEdit(TodoItemDto todo)
+    {
+        todo.EditTitle = todo.Title;
+        todo.EditDescription = todo.Description ?? string.Empty;
+        todo.IsEditing = true;
+    }
+
+    private void CancelEdit(TodoItemDto todo)
+    {
+        todo.IsEditing = false;
+    }
+
+    private async Task SaveEdit(TodoItemDto todo)
+    {
+        if (string.IsNullOrWhiteSpace(todo.EditTitle))
+        {
+            statusMessage = "Başlık boş olamaz.";
+            return;
+        }
+
+        var updateRequest = new
+        {
+            title = todo.EditTitle,
+            description = string.IsNullOrWhiteSpace(todo.EditDescription) ? null : todo.EditDescription,
+            descriptionProvided = true
+        };
+
+        var response = await Api.PutAsJsonAsync($"api/todos/{todo.Id}", updateRequest);
+
+        if (response.IsSuccessStatusCode)
+        {
+            todo.Title = todo.EditTitle;
+            todo.Description = string.IsNullOrWhiteSpace(todo.EditDescription) ? null : todo.EditDescription;
+            todo.IsEditing = false;
+            statusMessage = string.Empty;
+        }
+        else
+        {
+            statusMessage = $"Güncellenemedi: {response.StatusCode}";
+        }
+    }
+
+    private DateTime? GetRelevantDate(TodoItemDto todo)
+    {
+        return todo.DueDate ?? todo.StartDate;
+    }
+
+
+    private (string Text, string Color) GetTimeRemaining(DateTime? dueDate)
+    {
+        if (!dueDate.HasValue)
+        {
+            return ("", "#888");
+        }
+
+        var now = DateTime.UtcNow;
+        var diff = dueDate.Value - now;
+
+        if (diff.TotalSeconds < 0)
+        {
+            return ("Süresi geçti!", "#d9534f");
+        }
+
+        if (diff.TotalHours < 24)
+        {
+            var hours = (int)diff.TotalHours;
+            return (hours <= 1 ? "1 saatten az kaldı!" : $"{hours} saat kaldı", "#d9534f");
+        }
+
+        if (diff.TotalDays < 3)
+        {
+            var days = (int)diff.TotalDays;
+            return ($"{days} gün kaldı", "#e08b17");
+        }
+
+        var totalDays = (int)diff.TotalDays;
+        return ($"{totalDays} gün kaldı", "#5cb85c");
+    }
+}
