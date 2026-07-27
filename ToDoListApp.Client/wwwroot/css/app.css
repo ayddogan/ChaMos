@@ -1,3 +1,8 @@
+html, body {
+    margin: 0;
+    padding: 0;
+}
+
 :root {
     --color-navy: #1a1a3e;
     --color-navy-light: #2d2d5f;
