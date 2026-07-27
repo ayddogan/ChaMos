@@ -78,14 +78,11 @@ builder.Services.AddOpenApiDocument(config =>
 
 var app = builder.Build();
 
-if (app.Environment.IsDevelopment())
+app.UseOpenApi();
+app.UseSwaggerUi(config =>
 {
-    app.UseOpenApi();
-    app.UseSwaggerUi(config =>
-    {
-        config.Path = "/swagger";
-    });
-}
+    config.Path = "/swagger";
+});
 
 app.UseMiddleware<ToDoListApi.Middleware.ExceptionHandlingMiddleware>();
 app.UseMiddleware<ToDoListApi.Middleware.RequestLoggingMiddleware>();
