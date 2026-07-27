@@ -181,3 +181,6 @@ code {
     z-index: 10;
 }
 
+.content:has(.full-bleed) {
+    padding-top: 0;
+}
