@@ -38,6 +38,8 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 builder.Services.AddScoped<ITodoRepository, EfTodoRepository>();
+builder.Services.AddHttpClient();
+builder.Services.AddScoped<ToDoListApi.Services.EmailService>();
 builder.Services.AddHostedService<ToDoListApi.BackgroundServices.ReminderBackgroundService>();
 
 // JWT ayarlarını appsettings/user-secrets'tan okuyoruz

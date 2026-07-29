@@ -1,0 +1,62 @@
+@page "/verify-email"
+@inject HttpClient Http
+@inject NavigationManager Navigation
+
+<PageTitle>ChaMos - Email Doğrulama</PageTitle>
+
+<div class="auth-page-background full-bleed">
+    <div class="auth-card" style="max-width: 400px; width: 100%; text-align: center;">
+        <h1 style="color: var(--color-navy); margin-bottom: 20px;">Email Doğrulama</h1>
+
+        @if (isLoading)
+        {
+            <p>Doğrulanıyor...</p>
+        }
+        else if (isSuccess)
+        {
+            <p style="color: #5cb85c; font-size: 18px;">✅ @message</p>
+            <a class="btn btn-primary" href="login" style="margin-top: 20px; padding: 10px 28px; border-radius: 8px;">
+                Giriş Yap
+            </a>
+        }
+        else
+        {
+            <p style="color: #d9534f; font-size: 18px;">❌ @message</p>
+            <a class="btn btn-primary" href="/" style="margin-top: 20px; padding: 10px 28px; border-radius: 8px;">
+                Ana Sayfaya Dön
+            </a>
+        }
+    </div>
+</div>
+
+@code {
+    [SupplyParameterFromQuery]
+    public string? Token { get; set; }
+
+    private bool isLoading = true;
+    private bool isSuccess = false;
+    private string message = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (string.IsNullOrEmpty(Token))
+        {
+            isLoading = false;
+            isSuccess = false;
+            message = "Geçersiz doğrulama linki.";
+            return;
+        }
+
+        var response = await Http.PostAsync($"api/auth/verify-email?token={Token}", null);
+        var result = await response.Content.ReadFromJsonAsync<MessageResponse>();
+
+        isLoading = false;
+        isSuccess = response.IsSuccessStatusCode;
+        message = result?.Message ?? "Bir hata oluştu.";
+    }
+
+    private class MessageResponse
+    {
+        public string Message { get; set; } = string.Empty;
+    }
+}

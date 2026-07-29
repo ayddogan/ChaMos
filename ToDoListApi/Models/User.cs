@@ -7,6 +7,9 @@ namespace ToDoListApi.Models
         public string PasswordHash { get; private set; } = string.Empty;
         public string Role { get; private set; } = "User";
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public bool IsEmailVerified { get; private set; } = false;
+        public string? EmailVerificationToken { get; private set; }
+        public DateTime? EmailVerificationTokenExpiresAt { get; private set; }
 
         public User() { }
 
@@ -34,6 +37,18 @@ namespace ToDoListApi.Models
             }
 
             Email = email.Trim().ToLowerInvariant();
+        }
+        public void SetEmailVerificationToken(string token, DateTime expiresAt)
+        {
+            EmailVerificationToken = token;
+            EmailVerificationTokenExpiresAt = expiresAt;
+        }
+
+        public void MarkEmailAsVerified()
+        {
+            IsEmailVerified = true;
+            EmailVerificationToken = null;
+            EmailVerificationTokenExpiresAt = null;
         }
     }
 }

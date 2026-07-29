@@ -9,6 +9,7 @@ using System.Text;
 using ToDoListApi.Data;
 using ToDoListApi.Dtos;
 using ToDoListApi.Models;
+using ToDoListApi.Services;
 
 namespace ToDoListApi.Controllers
 {
@@ -20,11 +21,14 @@ namespace ToDoListApi.Controllers
         private readonly PasswordHasher<User> _passwordHasher;
         private readonly IConfiguration _configuration;
 
-        public AuthController(AppDbContext context, IConfiguration configuration)
+        private readonly EmailService _emailService;
+
+        public AuthController(AppDbContext context, IConfiguration configuration, EmailService emailService)
         {
             _context = context;
             _passwordHasher = new PasswordHasher<User>();
             _configuration = configuration;
+            _emailService = emailService;
         }
 
         [HttpPost("register")]
@@ -44,10 +48,46 @@ namespace ToDoListApi.Controllers
             var hashedPassword = _passwordHasher.HashPassword(tempUser, dto.Password);
             tempUser.SetPasswordHash(hashedPassword);
 
+            var verificationToken = Convert.ToBase64String(System.Security.Cryptography.RandomNumberGenerator.GetBytes(32))
+                .Replace("+", "-").Replace("/", "_").Replace("=", "");
+            tempUser.SetEmailVerificationToken(verificationToken, DateTime.UtcNow.AddHours(24));
+
             _context.Users.Add(tempUser);
             await _context.SaveChangesAsync();
 
-            return Ok(new { message = "Kayıt başarılı." });
+            var verificationLink = $"https://chamos.site/verify-email?token={verificationToken}";
+            var emailBody = $@"
+                <h1>ChaMos'a Hoş Geldin!</h1>
+                <p>Hesabını doğrulamak için aşağıdaki linke tıkla:</p>
+                <p><a href='{verificationLink}'>Hesabımı Doğrula</a></p>
+                <p>Bu link 24 saat geçerlidir.</p>
+            ";
+
+            await _emailService.SendEmailAsync(normalizedEmail, "ChaMos - Hesabını Doğrula", emailBody);
+
+            return Ok(new { message = "Kayıt başarılı. Lütfen email'ini kontrol edip hesabını doğrula." });
+        }
+
+        [HttpPost("verify-email")]
+        public async Task<IActionResult> VerifyEmail([FromQuery] string token)
+        {
+            var user = await _context.Users
+                .FirstOrDefaultAsync(u => u.EmailVerificationToken == token);
+
+            if (user == null)
+            {
+                return BadRequest(new { message = "Geçersiz veya süresi dolmuş doğrulama linki." });
+            }
+
+            if (user.EmailVerificationTokenExpiresAt.HasValue && user.EmailVerificationTokenExpiresAt.Value < DateTime.UtcNow)
+            {
+                return BadRequest(new { message = "Geçersiz veya süresi dolmuş doğrulama linki." });
+            }
+
+            user.MarkEmailAsVerified();
+            await _context.SaveChangesAsync();
+
+            return Ok(new { message = "Email başarıyla doğrulandı!" });
         }
 
         [HttpPost("login")]
