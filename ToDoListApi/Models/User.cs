@@ -10,6 +10,8 @@ namespace ToDoListApi.Models
         public bool IsEmailVerified { get; private set; } = false;
         public string? EmailVerificationToken { get; private set; }
         public DateTime? EmailVerificationTokenExpiresAt { get; private set; }
+        public string? PasswordResetToken { get; private set; }
+        public DateTime? PasswordResetTokenExpiresAt { get; private set; }
 
         public User() { }
 
@@ -49,6 +51,19 @@ namespace ToDoListApi.Models
             IsEmailVerified = true;
             EmailVerificationToken = null;
             EmailVerificationTokenExpiresAt = null;
+        }
+
+        public void SetPasswordResetToken(string token, DateTime expiresAt)
+        {
+            PasswordResetToken = token;
+            PasswordResetTokenExpiresAt = expiresAt;
+        }
+
+        public void ResetPassword(string newPasswordHash)
+        {
+            PasswordHash = newPasswordHash;
+            PasswordResetToken = null;
+            PasswordResetTokenExpiresAt = null;
         }
     }
 }

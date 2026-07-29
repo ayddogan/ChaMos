@@ -90,6 +90,54 @@ namespace ToDoListApi.Controllers
             return Ok(new { message = "Email başarıyla doğrulandı!" });
         }
 
+        [HttpPost("forgot-password")]
+        public async Task<IActionResult> ForgotPassword(ForgotPasswordDto dto)
+        {
+            var normalizedEmail = dto.Email.Trim().ToLowerInvariant();
+
+            var user = await _context.Users
+                .FirstOrDefaultAsync(u => u.Email == normalizedEmail);
+
+            // Madde 2: kullanıcı var mı yok mu, hiçbir zaman belli etmiyoruz
+            if (user != null)
+            {
+                var resetToken = Convert.ToBase64String(System.Security.Cryptography.RandomNumberGenerator.GetBytes(32))
+                    .Replace("+", "-").Replace("/", "_").Replace("=", "");
+                user.SetPasswordResetToken(resetToken, DateTime.UtcNow.AddHours(1));
+                await _context.SaveChangesAsync();
+
+                var resetLink = $"https://chamos.site/reset-password?token={resetToken}";
+                var emailBody = $@"
+                    <h1>Şifre Sıfırlama</h1>
+                    <p>Şifreni sıfırlamak için aşağıdaki linke tıkla:</p>
+                    <p><a href='{resetLink}'>Şifremi Sıfırla</a></p>
+                    <p>Bu link 1 saat geçerlidir. Bu isteği sen yapmadıysan, bu emaili görmezden gelebilirsin.</p>
+                ";
+
+                await _emailService.SendEmailAsync(normalizedEmail, "ChaMos - Şifre Sıfırlama", emailBody);
+            }
+
+            return Ok(new { message = "Eğer bu email adresi kayıtlıysa, şifre sıfırlama linki gönderildi." });
+        }
+
+        [HttpPost("reset-password")]
+        public async Task<IActionResult> ResetPassword(ResetPasswordDto dto)
+        {
+            var user = await _context.Users
+                .FirstOrDefaultAsync(u => u.PasswordResetToken == dto.Token);
+
+            if (user == null || user.PasswordResetTokenExpiresAt < DateTime.UtcNow)
+            {
+                return BadRequest(new { message = "Geçersiz veya süresi dolmuş sıfırlama linki." });
+            }
+
+            var hashedPassword = _passwordHasher.HashPassword(user, dto.NewPassword);
+            user.ResetPassword(hashedPassword);
+            await _context.SaveChangesAsync();
+
+            return Ok(new { message = "Şifren başarıyla güncellendi. Şimdi giriş yapabilirsin." });
+        }
+
         [HttpPost("login")]
         public async Task<IActionResult> Login(LoginDto dto)
         {
@@ -109,6 +157,7 @@ namespace ToDoListApi.Controllers
             {
                 return Unauthorized(new { message = "E-posta veya parola hatalı." });
             }
+
             if (!user.IsEmailVerified)
             {
                 return Unauthorized(new { message = "Lütfen giriş yapmadan önce email adresinizi doğrulayın." });
