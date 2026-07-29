@@ -70,7 +70,12 @@
         }
         else
         {
-            message = $"Kayıt başarısız: {response.StatusCode}";
+            var errorResult = await response.Content.ReadFromJsonAsync<ErrorResponse>();
+            message = errorResult?.Message ?? "Kayıt yapılamadı, lütfen tekrar deneyin.";
         }
+    }
+    private class ErrorResponse
+    {
+        public string Message { get; set; } = string.Empty;
     }
 }
