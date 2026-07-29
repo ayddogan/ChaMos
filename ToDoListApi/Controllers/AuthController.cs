@@ -109,6 +109,10 @@ namespace ToDoListApi.Controllers
             {
                 return Unauthorized(new { message = "E-posta veya parola hatalı." });
             }
+            if (!user.IsEmailVerified)
+            {
+                return Unauthorized(new { message = "Lütfen giriş yapmadan önce email adresinizi doğrulayın." });
+            }
 
             var accessToken = GenerateJwtToken(user);
             var refreshToken = await GenerateAndSaveRefreshTokenAsync(user.Id);
