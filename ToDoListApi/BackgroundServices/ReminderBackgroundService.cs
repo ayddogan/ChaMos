@@ -7,7 +7,7 @@ namespace ToDoListApi.BackgroundServices
     {
         private readonly IServiceScopeFactory _scopeFactory;
         private readonly ILogger<ReminderBackgroundService> _logger;
-        private readonly TimeSpan _checkInterval = TimeSpan.FromMinutes(1);
+        private readonly TimeSpan _checkInterval = TimeSpan.FromMinutes(15);
         private readonly TimeSpan _reminderWindow = TimeSpan.FromHours(1);
 
         public ReminderBackgroundService(
